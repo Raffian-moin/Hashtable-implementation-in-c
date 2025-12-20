@@ -1,8 +1,11 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
+#include<math.h>
 
 #define BASE_HASHTABLE_SIZE 53
+#define FIRST_PRIME_NUMBER 151 
+#define SECOND_PRIME_NUMBER 173
 
 typedef struct hashtable_item {
     char *key;
@@ -10,10 +13,32 @@ typedef struct hashtable_item {
 } ht_item;
 
 typedef struct hashtable {
-    size_t capacity;
-    size_t size;
+    int capacity;
+    int size;
     ht_item **items;
 } ht;
+
+static ht_item DELETED_HASHTABLE_ITEM = {NULL, NULL};
+
+int hash(char *key, int prime_number, int capacity) {
+    long hash_value = 0;
+    int s_len = strlen(key);
+
+    for (int i = 0; i < s_len; i++) {
+        hash_value += (long) pow(prime_number, s_len - (i + 1)) * key[i];
+        hash_value = hash_value % capacity;
+    }
+    
+    return (int) hash_value;
+
+}
+
+int get_hash(char *key, int capacity, int attempt) {
+    int hash_a = hash(key, FIRST_PRIME_NUMBER, capacity);
+    int hash_b = hash(key, SECOND_PRIME_NUMBER, capacity);
+    
+    return (hash_a + ((hash_b + 1) * attempt)) % capacity;
+}
 
 ht *init_ht() {
     ht *ht_ptr = malloc(sizeof(ht));
@@ -27,16 +52,59 @@ void insert_item(ht *ht, char *key, char *value) {
     ht_item *item = malloc(sizeof(ht_item));
     item->key = strdup(key);
     item->value = strdup(value);
-    ht->items[0] = item;
+
+    int attempt = 0;
+    int index = get_hash(key, ht->capacity, attempt);
+    ht_item *current = ht->items[index];
+    while(current != NULL) {
+        attempt++;
+        index = get_hash(key, ht->capacity, attempt);
+        current = ht->items[index];
+    }
+    ht->items[index] = item;
+    ht->size++;
+}
+
+void free_item(ht *ht, int index) {
+    free(ht->items[index]->key);
+    free(ht->items[index]->value);
+    free(ht->items[index]);
+}
+
+void delete_item(ht *ht, char *key) {
+    free_item(ht, 0);
+    ht->items[0] = &DELETED_HASHTABLE_ITEM;
+    ht->size--;
+}
+
+void destroy_hashtable(ht *ht) {
+    for(int i = 0; i < ht->capacity; i++) {
+        if (ht->items[i] != NULL && ht->items[i] != &DELETED_HASHTABLE_ITEM) {
+            free_item(ht, i);
+        }
+    }
+
+    free(ht->items);
+    free(ht);
 }
 
 int main() {
     ht *ht = init_ht();
     
-    printf("%zu\n", ht->capacity);
+    printf("%d\n", ht->capacity);
     printf("%zu\n", sizeof(struct hashtable));
     insert_item(ht, "name", "John Doe");
+    insert_item(ht, "name", "John Doe");
+    insert_item(ht, "name", "John Doe");
+    insert_item(ht, "name", "John Doe");
+    insert_item(ht, "name", "John Doe");
+    /*
     printf("%s\n", ht->items[0]->key);
     printf("%s\n", ht->items[0]->value);
+    */
+    
+    
+    delete_item(ht, "name");
+    destroy_hashtable(ht);
     
 }
