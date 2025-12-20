@@ -72,9 +72,38 @@ void free_item(ht *ht, int index) {
 }
 
 void delete_item(ht *ht, char *key) {
-    free_item(ht, 0);
-    ht->items[0] = &DELETED_HASHTABLE_ITEM;
-    ht->size--;
+    int attempt = 0;
+    int index = get_hash(key, ht->capacity, attempt);
+    ht_item *current = ht->items[index];
+    while(current != NULL) {
+        if (current != &DELETED_HASHTABLE_ITEM && (strcmp(current->key, key) == 0)) {
+            free_item(ht, index);
+            ht->items[index] = &DELETED_HASHTABLE_ITEM;
+            ht->size--;
+            break;
+        }
+
+        attempt++;
+        index = get_hash(key, ht->capacity, attempt);
+        current = ht->items[index];
+    }
+}
+
+char *search_item(ht *ht, char *key) {
+    int attempt = 0;
+    int index = get_hash(key, ht->capacity, attempt);
+    ht_item *current = ht->items[index];
+    while(current != NULL) {
+        if (current != &DELETED_HASHTABLE_ITEM && strcmp(current->key, key) == 0) {
+            return current->value;
+        }
+
+        attempt++;
+        index = get_hash(key, ht->capacity, attempt);
+        current = ht->items[index];
+    }
+
+    return NULL;
 }
 
 void destroy_hashtable(ht *ht) {
@@ -94,7 +123,7 @@ int main() {
     printf("%d\n", ht->capacity);
     printf("%zu\n", sizeof(struct hashtable));
     insert_item(ht, "name", "John Doe");
-    insert_item(ht, "name", "John Doe");
+    insert_item(ht, "name", "John Cena");
     insert_item(ht, "name", "John Doe");
     insert_item(ht, "name", "John Doe");
     insert_item(ht, "name", "John Doe");
@@ -104,7 +133,14 @@ int main() {
     */
     
     
+    printf("size %d\n", ht->size);
     delete_item(ht, "name");
+    delete_item(ht, "name");
+    delete_item(ht, "name");
+    delete_item(ht, "name");
+    delete_item(ht, "name");
+    printf("size %d\n", ht->size);
+    printf("search item %s\n", search_item(ht, "name"));
     destroy_hashtable(ht);
     
 }
